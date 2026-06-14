@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时财经新闻 - 全球财经资讯</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>📊 实时财经新闻</h1>
+            <p class="subtitle">关注全球财经动态，洞察市场脉搏</p>
+            <div class="last-update" id="lastUpdate"></div>
+        </header>
+
+        <!-- 标签页切换 -->
+        <div class="tabs">
+            <button class="tab-btn active" id="tabNews" onclick="switchTab('news')">📰 财经新闻</button>
+            <button class="tab-btn" id="tabIndicators" onclick="switchTab('indicators')">📈 经济指标</button>
+        </div>
+
+        <!-- 新闻面板 -->
+        <div id="newsPanel" class="tab-panel active">
+            <!-- 控制面板 -->
+            <div class="controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索新闻关键词...">
+                    <button onclick="searchNews()" class="btn-search">搜索</button>
+                </div>
+                <div class="filter-buttons">
+                    <button onclick="loadAllNews()" class="btn-filter active" id="btnAll">全部新闻</button>
+                    <button onclick="loadHighImpactNews()" class="btn-filter" id="btnHighImpact">重点新闻</button>
+                </div>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">总新闻数</span>
+                    <span class="stat-value" id="totalCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">重点新闻</span>
+                    <span class="stat-value highlight" id="highImpactCount">0</span>
+                </div>
+            </div>
+
+            <!-- 新闻列表 -->
+            <div class="news-container" id="newsContainer">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 经济指标面板 -->
+        <div id="indicatorsPanel" class="tab-panel">
+            <!-- 国家切换 -->
+            <div class="country-tabs">
+                <button class="country-btn active" id="countryChina" onclick="loadIndicators('china')">
+                    🇨🇳 中国经济指标
+                </button>
+                <button class="country-btn" id="countryUS" onclick="loadIndicators('us')">
+                    🇺🇸 美国经济指标
+                </button>
+            </div>
+
+            <!-- 指标统计 -->
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">指标数量</span>
+                    <span class="stat-value" id="indicatorCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">更新时间</span>
+                    <span class="stat-value" id="indicatorUpdate">-</span>
+                </div>
+            </div>
+
+            <!-- 指标网格 -->
+            <div class="indicators-grid" id="indicatorsGrid">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 指标详情弹窗 -->
+        <div class="modal" id="indicatorModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">指标详情</h2>
+                    <button class="close-btn" onclick="closeModal()">&times;</button>
+                </div>
+                <div class="modal-body" id="modalBody"></div>
+            </div>
+        </div>
+
+        <!-- 错误提示 -->
+        <div class="error-message" id="errorMessage" style="display: none;"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
