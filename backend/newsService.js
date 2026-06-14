@@ -1,6 +1,5 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const puppeteer = require('puppeteer');
 
 // ============================================
 // 中国股市关键词（用于判断重要性）
@@ -206,119 +205,6 @@ class WallStreetCNAPI extends NewsDataSource {
 }
 
 // ============================================
-// 4. Puppeteer爬虫数据源（备选）
-// ============================================
-class PuppeteerCrawler extends NewsDataSource {
-  constructor() {
-    super('爬虫');
-    this.browser = null;
-    this.targets = [
-      {
-        name: '新浪财经',
-        url: 'https://finance.sina.com.cn/stock/',
-        selector: '.news-item h2 a, .news-list a, [data-role="news-item"] a',
-        titleAttr: 'text',
-        linkAttr: 'href'
-      },
-      {
-        name: '东方财富',
-        url: 'https://www.eastmoney.com/',
-        selector: '.news-item a, .title a, .news-list a',
-        titleAttr: 'text',
-        linkAttr: 'href'
-      }
-    ];
-  }
-
-  async initBrowser() {
-    if (!this.browser) {
-      this.browser = await puppeteer.launch({
-        headless: 'new',
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--disable-gpu',
-          '--window-size=1920,1080'
-        ]
-      });
-    }
-    return this.browser;
-  }
-
-  async fetch() {
-    const allNews = [];
-    
-    try {
-      await this.initBrowser();
-      
-      for (const target of this.targets) {
-        try {
-          const news = await this.crawlTarget(target);
-          allNews.push(...news);
-        } catch (err) {
-          console.error(`[爬虫] ${target.name} 抓取失败:`, err.message);
-        }
-      }
-    } catch (error) {
-      console.error('[爬虫] 初始化失败:', error.message);
-    }
-
-    return allNews;
-  }
-
-  async crawlTarget(target) {
-    const page = await this.browser.newPage();
-    
-    try {
-      await page.setViewport({ width: 1920, height: 1080 });
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-      
-      await page.goto(target.url, { 
-        waitUntil: 'networkidle2', 
-        timeout: 30000 
-      });
-
-      // 等待内容加载
-      await page.waitForTimeout(3000);
-
-      const news = await page.evaluate((selector) => {
-        const items = document.querySelectorAll(selector);
-        return Array.from(items).slice(0, 10).map(item => {
-          const title = item.textContent?.trim() || item.innerText?.trim() || '';
-          let link = item.href || item.getAttribute('href') || '';
-          
-          // 处理相对路径
-          if (link && !link.startsWith('http')) {
-            link = new URL(link, window.location.origin).href;
-          }
-          
-          return { title, link };
-        }).filter(item => item.title && item.link);
-      }, target.selector);
-
-      return news.map(item => this.normalize({
-        title: item.title,
-        url: item.link,
-        time: new Date().toISOString(),
-        source: target.name
-      }));
-
-    } finally {
-      await page.close();
-    }
-  }
-
-  async close() {
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-    }
-  }
-}
-
-// ============================================
 // 新闻服务主类
 // ============================================
 class NewsService {
@@ -333,9 +219,6 @@ class NewsService {
       new EastMoneyAPI(),
       new WallStreetCNAPI()
     ];
-    
-    this.crawler = new PuppeteerCrawler();
-    this.useCrawler = false; // 默认不使用爬虫，API失败后启用
   }
 
   // 判断新闻对中国股市的影响程度
@@ -387,21 +270,7 @@ class NewsService {
       }
     }
 
-    // 2. 如果API没有获取到数据，启用爬虫作为备选
-    if (allNews.length === 0) {
-      console.log('[NewsService] API未获取到数据，启用爬虫...');
-      try {
-        const crawlerNews = await this.crawler.fetch();
-        if (crawlerNews && crawlerNews.length > 0) {
-          console.log(`[NewsService] 爬虫获取到 ${crawlerNews.length} 条新闻`);
-          allNews.push(...crawlerNews);
-        }
-      } catch (error) {
-        console.error('[NewsService] 爬虫获取失败:', error.message);
-      }
-    }
-
-    // 3. 如果仍然没有数据，使用模拟数据（降级方案）
+    // 2. 如果API没有获取到数据，使用模拟数据（降级方案）
     if (allNews.length === 0) {
       console.log('[NewsService] 使用模拟数据...');
       allNews = this.getMockNews();
